@@ -9,3 +9,9 @@ subset_GI <- function(GI, res, start, end){
   subset_GI = GI[subset_idx, ]
   return(subset_GI)
 }
+
+iset2GI <- function(iset, rep_num){
+  GI = interactions(iset)
+  GI$count = assay(iset)[, rep_num]
+  return(GI)
+}

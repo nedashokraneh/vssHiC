@@ -1,4 +1,138 @@
-### TAD-related analyses
+### wrapper functions for TAD callers
+
+
+#' Apply HiCseg on InteractionSet
+#'
+#' This is a wrapper function for HiCseg to take InteractionSet
+#' object as input and return TADs as GRanges object.
+#'
+#' @param iset Input InteractionSet.
+#' @param rep_num The replicate's number in InteractionSet to
+#' be used for TAD annotation.
+#' @param max_cp HiCseg's parameter: maximum number of
+#' change points.
+#' @param model HiCSeg's parameter: "D" for block-diagonal
+#' and "Dplus" for the extended block-diagonal model.
+#' @param dist HiCseg's parameter: Distribution of the data:
+#' "B" is for Negative Binomial distribution,
+#' "P" is for the Poisson distribution and
+#' "G" is for the Gaussian distribution.
+#'
+#' @return A GRanges object including identified TADs' ranges.
+#'
+#' @importFrom HiCseg HiCseg_linkC_R
+#' @import InteractionSet
+#' @importFrom InteractionSet inflate
+#' @export
+
+iset_hicseg <- function(iset,
+                        rep_num,
+                        max_cp = 40,
+                        model = "D",
+                        dist = "G"){
+  rg = regions(interactions(iset))
+  CM = inflate(iset, rg, rg, assay = 1, sample = rep_num)
+  CM = as.matrix.Vector(CM)
+  #CM = as(CM, "Matrix")
+  CM[is.na(CM)] = 0
+  CM_size = dim(CM)[1]
+  result = HiCseg_linkC_R(CM_size, max_cp, dist, CM, model)
+  #return(list(matrix = CM, result = result))
+  t_hat = c(result$t_hat[result$t_hat != 0])
+  starts = start(ranges(rg)) - 1
+  boundaries = starts[t_hat]
+  chrom = unique(seqnames(regions(interactions(iset))))
+  g_range = GRanges(seqnames = rep(chrom, length(boundaries) - 1),
+                    IRanges(start = boundaries[1: (length(boundaries) - 1)],
+                            end = boundaries[2: length(boundaries)]))
+  return(g_range)
+}
+
+#' Apply TopDom on InteractionSet
+#'
+#' This is a wrapper function for TopDom to take InteractionSet
+#' object as input and return TADs as GRanges object.
+#'
+#' @param iset Input InteractionSet.
+#' @param rep_num The replicate's number in InteractionSet to
+#' be used for TAD annotation.
+#' @param res resolution of iset.
+#' @param window_size TopDom's parameter: The number of bins
+#' to extend (as a non-negative integer).
+#'
+#' @return A GRanges object including identified TADs' ranges.
+#'
+#' @import InteractionSet
+#' @importFrom InteractionSet inflate
+#' @export
+
+iset_topdom <- function(iset,
+                        rep_num,
+                        res,
+                        window_size){
+
+  rg = regions(interactions(iset))
+  starts = start(ranges(regions(interactions(iset)))) - 1
+  CM = inflate(iset, rg, rg, assay = 1, sample = rep_num)
+  CM = as.matrix.Vector(CM)
+  CM[is.na(CM)] = 0
+  window_size = window_size / res
+  tads <- TopDom(CM, window_size)
+  tads$start = starts[tads$bin]
+  #return(tads)
+  boundaries = tads$start[tads$pvalue_boundaries]
+  chrom = unique(seqnames(regions(interactions(iset))))
+  g_range = GRanges(seqnames = rep(chrom, length(boundaries) - 1),
+                    IRanges(start = boundaries[1: (length(boundaries) - 1)],
+                            end = boundaries[2: length(boundaries)]))
+  return(g_range)
+}
+
+#' Apply SpectralTAD on InteractionSet
+#'
+#' This is a wrapper function for SpectralTAD to take
+#' InteractionSet object as input and return TADs as
+#' GRanges object.
+#'
+#' @param iset Input InteractionSet.
+#' @param rep_num The replicate's number in InteractionSet to
+#' be used for TAD annotation.
+#' @param res resolution of iset.
+#' @param window_size SpectralTAD's parameter: The size of
+#' the sliding window for calculating TADs.
+#'
+#' @return A GRanges object including identified TADs' ranges.
+#'
+#' @import InteractionSet
+#' @importFrom InteractionSet inflate
+#' @export
+
+iset_spectralTAD <- function(iset,
+                             rep_num,
+                             res,
+                             window_size){
+
+  rg = regions(interactions(iset))
+  CM = inflate(iset, rg, rg, assay = 1, sample = rep_num)
+  CM = as.matrix.Vector(CM)
+  CM[is.na(CM)] = 0
+  colnames(CM) = start(ranges(rg)) - 1 # seq(0:(dim(CM)[1]-1))*res
+  window_size = window_size / res
+  chrom = unique(seqnames(regions(interactions(iset))))
+  tads <- SpectralTAD(CM, chrom, resolution = res,
+                      min_size = 1, window_size = window_size)
+  #return(tads$Level_1)
+  boundaries <- unique(c(tads$Level_1$start, tads$Level_1$end))
+  boundaries = sort(boundaries)
+  #return(boundaries)
+  chrom = unique(seqnames(regions(interactions(iset))))
+  g_range = GRanges(seqnames = rep(chrom, length(boundaries) - 1),
+                    IRanges(start = boundaries[1: (length(boundaries) - 1)],
+                            end = boundaries[2: length(boundaries)]))
+  return(g_range)
+}
+
+### TAD evaluation functions
 
 around_boundary2 <- function(boundaries,
                              peaks_vec,
@@ -161,42 +295,9 @@ all_boundary_fc <- function(boundaries_df, TF_peaks, res,
 #   return(fcs)
 # }
 
+### helper functions corresponding to TAD callers
 
-iset_hicseg <- function(iset, rep_num, max_cp = 40, model = "D", dist = "G"){
-  rg = regions(interactions(iset))
-  CM = inflate(iset, rg, rg, assay = 1, sample = rep_num)
-  CM = as.matrix(CM)
-  CM[is.na(CM)] = 0
-  CM_size = dim(CM)[1]
-  result = HiCseg_linkC_R(CM_size, max_cp, dist, CM, model)
-  return(list(matrix = CM, result = result))
-  t_hat = c(1, result$t_hat[result$t_hat != 0] + 1)
-}
-
-iset_topdom <- function(iset, window_size){
-  rg = regions(interactions(iset))
-  starts = start(ranges(regions(interactions(iset)))) - 1
-  CM = inflate(iset, rg, rg, assay = 1, sample = 2)
-  CM = as.matrix(CM)
-  CM[is.na(CM)] = 0
-  tads <- TopDom(CM, 20)
-  tads$start = starts[tads$bin]
-  return(tads)
-}
-
-iset_spectralTAD <- function(iset, chr, res){
-  rg = regions(interactions(iset))
-  CM = inflate(iset, rg, rg, assay = 1, sample = 2)
-  CM = as.matrix(CM)
-  CM[is.na(CM)] = 0
-  colnames(CM) = start(ranges(rg)) - 1 # seq(0:(dim(CM)[1]-1))*res
-  window_size = 2000000/res
-  tads <- SpectralTAD(CM, chr, resolution = res,
-                      min_size = 1, window_size = window_size)
-  return(tads$Level_1)
-  boundaries <- unique(c(tads$Level_1$start, tads$Level_1$end))
-  return(boundaries)
-}
+# TopDom
 
 get_TopDom_boundaries <- function(mat, window_size, res){
   tads <- TopDom(mat, window_size)
@@ -518,6 +619,7 @@ Convert.Bin.To.Domain.TMP <- function(bins, signal.idx, gap.idx, pvalues = NULL,
   ret
 }
 
+# SpectralTAD
 
 SpectralTAD = function(cont_mat, chr, levels = 1, qual_filter = FALSE,
                        z_clust = FALSE, eigenvalues = 2, min_size = 5,
