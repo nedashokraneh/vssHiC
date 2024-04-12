@@ -1,12 +1,10 @@
 Package: vssHiC
-Title: What the Package Does (One Line, Title Case)
+Title: Variance stabilization of chromatin contacts from Hi-C data 
 Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+Author: Neda Shokraneh Kenari 
+Maintainer: Neda Shokraneh Kenari (nedashokraneh95@gmail.com)
+Description: Genome-wide chromatin conformation capture assay, Hi-C, allows studying chromatin 3D structural features and their functional implications, but the variance instability of raw read counts hinders the visualization and downstream analysis of this data modality. vssHiC stabilizes the variance of signals across a dynamic range, makes heatmap visualization of contact maps more appealing, and improves the performance of subcompartment callers relying on Gaussian observed variables.
+License: use_mit_license()
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
