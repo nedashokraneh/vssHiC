@@ -25,4 +25,5 @@ A vignette of the vssHiC manual is provided at [https://rpubs.com/nshokran/vssHi
 
 ## Citation
 
-Neda Shokraneh Kenari, Faezeh Bayat, Maxwell Libbrecht. [VSS-Hi-C: Variance-stabilized signals for chromatin contacts](https://doi.org/10.1101/2021.10.19.465027). bioRxiv 2021.10.19.
+Neda Shokraneh Kenari, Faezeh Bayat, Maxwell Libbrecht, [VSS-Hi-C: Variance-stabilized signals for chromatin contacts](https://doi.org/10.1093/bioinformatics/btae715), Bioinformatics, 2024;, btae715
+
